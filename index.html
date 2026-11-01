@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Security: only talk to Google Apps Script; only load scripts from this page + cdnjs (Word import library).
+     'unsafe-eval' is allowed because the Word-import library may need it; the page already allows inline scripts. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<!-- Clickjacking protection: if this page is loaded inside another site's frame, break out (or stay hidden). -->
+<style id="antiframe">html{display:none !important}</style>
+<script>if (window.top === window.self) { document.getElementById('antiframe').remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
+<title>SSLC Science — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF9F3;
+    --rule:#C3D2EA;
+    --margin:#C0504D;
+    --ink:#202B3C;
+    --ink-soft:#5B6577;
+    --green:#3F7D5C;
+    --red:#B23B3B;
+    --gold:#C98A2C;
+    --gold-ink:#5C3B0C;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:920px; margin:0 auto; padding:36px 24px 80px; }
+  header.page-head{ margin-bottom:24px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px; }
+  .eyebrow{ font-size:13px; color:var(--ink-soft); }
+  h1{ font-family:'Spectral', serif; font-weight:600; font-size:28px; margin:2px 0 0; }
+  h1 .accent{ color:var(--margin); }
+  .who{ font-size:13px; color:var(--ink-soft); cursor:pointer; }
+
+  .card{
+    background:#fff;
+    border:1px solid rgba(32,43,58,0.12);
+    border-radius:4px;
+    padding:22px;
+    margin-bottom:18px;
+  }
+
+  label{ display:block; font-size:13px; color:var(--ink-soft); margin:14px 0 5px; }
+  label:first-of-type{ margin-top:0; }
+  input[type=text], input[type=email], input[type=password], textarea, select{
+    width:100%;
+    font-family:'Work Sans', sans-serif;
+    font-size:14.5px;
+    padding:9px 10px;
+    border:1px solid rgba(32,43,58,0.25);
+    border-radius:3px;
+    background:transparent;
+    color:var(--ink);
+  }
+  textarea{ resize:vertical; min-height:56px; }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--margin); }
+
+  .btn{
+    display:inline-block; font-family:'Work Sans', sans-serif; font-weight:600; font-size:14px;
+    padding:9px 18px; border-radius:3px; border:1.5px solid var(--ink); background:transparent;
+    color:var(--ink); cursor:pointer;
+  }
+  .btn:hover{ background:rgba(32,43,58,0.06); }
+  .btn-primary{ background:var(--gold); border-color:var(--gold); color:var(--gold-ink); }
+  .btn-primary:hover{ filter:brightness(0.95); }
+  .btn-danger{ border-color:var(--red); color:var(--red); }
+  .btn-danger:hover{ background:rgba(178,59,59,0.08); }
+  .btn-sm{ padding:5px 12px; font-size:12.5px; }
+  .btn-row{ margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+
+  .error-msg{ color:var(--red); font-size:13.5px; margin-top:10px; }
+  .hidden{ display:none !important; }
+
+  .filters{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .filters > div{ flex:1; min-width:160px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:14px; }
+  thead th{
+    text-align:left; font-size:12px; text-transform:none; color:var(--ink-soft);
+    border-bottom:1.5px solid var(--ink); padding:8px 6px; font-weight:600;
+  }
+  tbody td{ padding:10px 6px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  tbody tr:hover{ background:rgba(32,43,58,0.03); }
+  .q-cell{ max-width:340px; }
+  .tag{ display:inline-block; font-size:11.5px; color:var(--ink-soft); border:1px solid var(--rule); border-radius:10px; padding:2px 8px; margin-top:4px; }
+  .row-actions{ white-space:nowrap; }
+  .row-actions .btn{ margin-right:6px; }
+
+  .option-row{ display:flex; gap:10px; margin-top:8px; }
+  .option-row .letter{
+    flex:0 0 28px; height:38px; border:1.5px solid var(--ink); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:600; font-size:13px; margin-top:2px;
+  }
+  .option-row.is-correct .letter{ background:var(--green); border-color:var(--green); color:#fff; }
+  .option-row input{ flex:1; }
+  .correct-note{ font-size:12px; color:var(--ink-soft); margin-top:8px; }
+
+  .empty{ color:var(--ink-soft); font-size:14px; padding:16px 0; text-align:center; }
+
+  /* ---- Import from PDF/Word ---- */
+  .import-drop{
+    border:1.5px dashed rgba(32,43,58,0.3);
+    border-radius:6px;
+    padding:22px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+  .import-drop.drag-over{ border-color:var(--gold); background:rgba(201,138,44,0.06); }
+  .import-status{ font-size:13.5px; color:var(--ink-soft); margin-top:10px; }
+  .import-status.busy{ color:var(--gold-ink); }
+  .apply-all-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:16px; }
+  .apply-all-row > div{ flex:1; min-width:160px; }
+  .review-summary{ font-size:13.5px; color:var(--ink-soft); margin:14px 0 10px; }
+  .review-list{ max-height:560px; overflow-y:auto; border:1px solid var(--rule); border-radius:4px; padding:4px 12px; }
+  .review-row{ padding:14px 4px; border-bottom:1px dashed rgba(32,43,58,0.18); }
+  .review-row:last-child{ border-bottom:none; }
+  .review-row.excluded{ opacity:0.45; }
+  .review-row.has-warning{ background:rgba(178,59,59,0.05); }
+  .review-head{ display:flex; align-items:flex-start; gap:10px; }
+  .review-head input[type=checkbox]{ margin-top:5px; flex:0 0 auto; width:auto; }
+  .review-num{ font-family:'Spectral',serif; font-weight:600; font-size:13px; color:var(--ink-soft); flex:0 0 auto; margin-top:4px; }
+  .review-warning{ display:inline-block; font-size:11.5px; color:var(--red); border:1px solid var(--red); border-radius:10px; padding:1px 8px; margin-left:6px; }
+  .review-fields{ flex:1; }
+  .review-fields textarea{ min-height:38px; }
+  .review-tag-row{ display:flex; gap:8px; margin-top:8px; }
+  .review-tag-row input{ flex:1; }
+  .option-row.compact{ margin-top:6px; }
+  .option-row.compact .letter{ width:24px; height:24px; flex-basis:24px; font-size:11.5px; }
+  .option-row.compact input{ font-size:13.5px; padding:6px 8px; }
+
+  /* ---- Phones ---- */
+  #table-wrap{ overflow-x:auto; }
+  @media (max-width: 600px){
+    .wrap{ padding:22px 12px 60px; }
+    h1{ font-size:23px; }
+    .card{ padding:16px 12px; }
+    input[type=text], input[type=email], input[type=password], textarea, select{ font-size:16px; }
+    .filters > div{ min-width:100%; }
+    table{ min-width:480px; }
+    .btn-row .btn{ flex:1 1 auto; }
+    .option-row .letter{ flex:0 0 34px; height:34px; }
+    .review-tags{ flex-direction:column; }
+  }
+
+  /* tabs, toolbar, pager */
+  .tabs{ display:flex; gap:8px; margin-bottom:16px; }
+  .tabs .btn.active{ background:var(--ink); color:var(--paper); }
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+  .toolbar .grow{ flex:1; min-width:180px; }
+  .toolbar label{ margin-top:0; }
+  .pager{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft); gap:8px; flex-wrap:wrap; }
+  .pager .btn{ padding:6px 14px; font-size:13px; }
+  .pager .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  td.chk, th.chk{ width:28px; }
+  .review-dup{ display:inline-block; font-size:11.5px; color:var(--gold-ink); background:rgba(201,138,44,0.2); border-radius:10px; padding:1px 8px; margin-left:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page-head" id="topbar" style="display:none;">
+    <div>
+      <div class="eyebrow">SSLC Science — Admin</div>
+      <h1>Question <span class="accent">bank</span>.</h1>
+    </div>
+    <div class="who" id="whoami" onclick="logout()"></div>
+  </header>
+
+  <!-- LOGIN VIEW -->
+  <section id="view-login">
+    <header class="page-head">
+      <div>
+        <div class="eyebrow">SSLC Science — Admin</div>
+        <h1>Sign in to <span class="accent">manage</span> questions.</h1>
+      </div>
+    </header>
+    <div class="card" style="max-width:420px;">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="username">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+      <div class="btn-row"><button class="btn btn-primary" onclick="doLogin()">Log in</button></div>
+      <div class="error-msg hidden" id="login-error"></div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="hidden">
+
+    <div class="tabs">
+      <button class="btn active" id="tabbtn-questions" onclick="showTab('questions')">Questions</button>
+      <button class="btn" id="tabbtn-students" onclick="showTab('students')">Students</button>
+    </div>
+
+    <div id="tab-questions">
+
+    <div class="card">
+      <div class="filters">
+        <div>
+          <label for="filter-subject">Subject</label>
+          <select id="filter-subject" onchange="onFilterSubjectChange()"></select>
+        </div>
+        <div>
+          <label for="filter-chapter">Chapter</label>
+          <select id="filter-chapter"><option value="">All chapters</option></select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="applyFilters()">Filter</button>
+        <button class="btn btn-primary" onclick="openForm()">+ Add question</button>
+      </div>
+    </div>
+
+    <!-- IMPORT FROM WORD DOCUMENT -->
+    <div class="card">
+      <h2 style="font-family:'Spectral',serif;font-size:20px;margin:0 0 4px;">Import questions from a Word document</h2>
+      <div style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">
+        Upload a .docx question bank — numbered questions with (A)(B)(C)(D) options, plus an answer key with explanations at the end. You'll review everything before it's added to the Sheet.
+      </div>
+
+      <div class="import-drop" id="import-drop">
+        <input type="file" id="import-file" accept=".docx" style="margin-bottom:8px;" onchange="handleImportFile(this.files[0])">
+        <div>.docx files only</div>
+      </div>
+      <div class="import-status hidden" id="import-status"></div>
+
+      <div id="apply-all-block" class="hidden">
+        <div class="apply-all-row">
+          <div>
+            <label for="apply-subject">Subject (applies to all rows below)</label>
+            <input type="text" id="apply-subject" placeholder="e.g. Science">
+          </div>
+          <div>
+            <label for="apply-chapter">Chapter (applies to all rows below)</label>
+            <input type="text" id="apply-chapter" placeholder="e.g. Chemical Reactions and Equations">
+          </div>
+          <button class="btn" onclick="applyToAllRows()">Apply to all</button>
+        </div>
+      </div>
+
+      <div id="review-block" class="hidden">
+        <div class="review-summary" id="review-summary"></div>
+        <div class="review-list" id="review-list"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="importSelectedRows()" id="import-btn">Import selected</button>
+          <button class="btn" onclick="cancelImport()">Cancel</button>
+        </div>
+        <div class="error-msg hidden" id="import-error"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="grow">
+          <label for="q-search">Search questions</label>
+          <input type="text" id="q-search" placeholder="Type to search question, option, chapter…" oninput="onSearchInput()">
+        </div>
+        <button class="btn btn-danger btn-sm" id="bulk-del-btn" onclick="bulkDeleteSelected()" disabled>Delete selected (0)</button>
+        <button class="btn btn-danger btn-sm hidden" id="chapter-del-btn" onclick="deleteWholeChapter()">Delete entire chapter</button>
+      </div>
+      <div id="table-wrap"><div class="empty">Loading…</div></div>
+      <div class="pager" id="pager"></div>
+    </div>
+
+    <!-- ADD / EDIT FORM -->
+    <div class="card hidden" id="form-card">
+      <h2 style="font-family:'Spectral',serif;font-size:20px;margin:0 0 10px;" id="form-title">Add question</h2>
+
+      <label for="f-subject">Subject</label>
+      <input type="text" id="f-subject" placeholder="e.g. Physics">
+
+      <label for="f-chapter">Chapter / topic</label>
+      <input type="text" id="f-chapter" placeholder="e.g. Force and Pressure">
+
+      <label for="f-question">Question</label>
+      <textarea id="f-question" placeholder="Type the question text"></textarea>
+
+      <label>Options — tap a letter to mark the correct answer</label>
+      <div id="option-rows"></div>
+
+      <label for="f-explanation">Explanation <span style="font-weight:400;">(shown to students after they answer)</span></label>
+      <textarea id="f-explanation" placeholder="Why is this the correct answer?"></textarea>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveQuestion()">Save question</button>
+        <button class="btn" onclick="closeForm()">Cancel</button>
+      </div>
+      <div class="error-msg hidden" id="form-error"></div>
+    </div>
+
+    </div><!-- /tab-questions -->
+
+    <div id="tab-students" class="hidden">
+      <div class="card">
+        <div class="toolbar">
+          <div class="grow">
+            <label for="student-search">Search students</label>
+            <input type="text" id="student-search" placeholder="Name or email…" oninput="renderStudents()">
+          </div>
+        </div>
+        <div id="students-wrap"><div class="empty">Loading…</div></div>
+        <div class="pager" id="students-count"></div>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<!-- Library used only by the "Import from Word document" feature -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+<script>
+/* ===== CONFIG ===== */
+const API_URL = "https://script.google.com/macros/s/AKfycbz2CXnrk-HZOnze5jIt_G4kjQps3bDGId5fjmDv0zSuwyp_uMChpP5jzF438DWXGvLp/exec";
+
+/* ===== state ===== */
+let admin = JSON.parse(sessionStorage.getItem('mcq_admin') || 'null');
+let allQuestions = [];
+let subjects = [];
+let editingId = null;
+let correctIndex = 1;
+
+/* ===== API helpers ===== */
+async function apiPost(action, payload) {
+  const token = admin && admin.token ? admin.token : undefined;
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, token, ...payload })
+  });
+  const json = await res.json();
+  if (!json.success) {
+    if (/session expired/i.test(json.error || '')) {
+      logout();
+      alert('Your session expired. Please log in again.');
+    }
+    throw new Error(json.error || 'Request failed');
+  }
+  return json;
+}
+
+/* ===== auth ===== */
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  try {
+    const data = await apiPost('adminLogin', { email, password });
+    admin = { email: data.email, token: data.token };
+    sessionStorage.setItem('mcq_admin', JSON.stringify(admin));
+    afterLogin();
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+}
+
+function logout() {
+  // Revoke the session on the server too (best effort), so a copied token stops working.
+  if (admin && admin.token) {
+    try {
+      fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'adminLogout', token: admin.token }) }).catch(() => {});
+    } catch (e) {}
+  }
+  admin = null;
+  try { showTab('questions'); } catch (e) {}
+  sessionStorage.removeItem('mcq_admin');
+  document.getElementById('topbar').style.display = 'none';
+  document.getElementById('view-dashboard').classList.add('hidden');
+  document.getElementById('view-login').classList.remove('hidden');
+}
+
+async function afterLogin() {
+  document.getElementById('view-login').classList.add('hidden');
+  document.getElementById('view-dashboard').classList.remove('hidden');
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('whoami').textContent = `${admin.email} · logout`;
+  await loadSubjectFilter();
+  await loadAndRenderTable();
+}
+
+/* ===== filters ===== */
+async function loadSubjectFilter() {
+  subjects = (await apiPost('getSubjects', {})).data;
+  const sel = document.getElementById('filter-subject');
+  sel.innerHTML = '<option value="">All subjects</option>' + subjects.map(s => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join('');
+}
+
+async function onFilterSubjectChange() {
+  const subject = document.getElementById('filter-subject').value;
+  const chapSel = document.getElementById('filter-chapter');
+  if (!subject) { chapSel.innerHTML = '<option value="">All chapters</option>'; return; }
+  const chapters = (await apiPost('getChapters', { subject })).data;
+  chapSel.innerHTML = '<option value="">All chapters</option>' + chapters.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+function applyFilters() { loadAndRenderTable(); }
+
+/* ===== table ===== */
+const PAGE_SIZE = 25;
+let qPage = 0;
+let qSearch = '';
+let selectedIds = new Set();
+let visibleQs = []; // questions after search filter
+
+async function loadAndRenderTable() {
+  const wrap = document.getElementById('table-wrap');
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+  const subject = document.getElementById('filter-subject').value;
+  const chapter = document.getElementById('filter-chapter').value;
+  allQuestions = (await apiPost('getAllQuestions', { subject, chapter })).data;
+  qPage = 0;
+  selectedIds.clear();
+  document.getElementById('chapter-del-btn').classList.toggle('hidden', !(subject && chapter));
+  renderTable();
+}
+
+function onSearchInput() {
+  qSearch = document.getElementById('q-search').value.trim().toLowerCase();
+  qPage = 0;
+  renderTable();
+}
+
+function renderTable() {
+  const wrap = document.getElementById('table-wrap');
+  visibleQs = allQuestions.filter(q => !qSearch ||
+    [q.question, q.chapter, q.subject, ...q.options].join(' ').toLowerCase().includes(qSearch));
+
+  if (allQuestions.length === 0) {
+    wrap.innerHTML = '<div class="empty">No questions yet. Click "Add question" or import a Word document.</div>';
+    document.getElementById('pager').innerHTML = '';
+    updateBulkButton();
+    return;
+  }
+  if (visibleQs.length === 0) {
+    wrap.innerHTML = '<div class="empty">No questions match your search.</div>';
+    document.getElementById('pager').innerHTML = '';
+    updateBulkButton();
+    return;
+  }
+  const pages = Math.ceil(visibleQs.length / PAGE_SIZE);
+  if (qPage >= pages) qPage = pages - 1;
+  const slice = visibleQs.slice(qPage * PAGE_SIZE, (qPage + 1) * PAGE_SIZE);
+  const allOnPage = slice.every(q => selectedIds.has(String(q.id)));
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th class="chk"><input type="checkbox" ${allOnPage ? 'checked' : ''} onchange="togglePageSelect(this.checked)" title="Select all on this page"></th>
+        <th>Question</th><th>Correct</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${slice.map(q => `
+          <tr>
+            <td class="chk"><input type="checkbox" data-act="select" data-id="${escapeAttr(q.id)}" ${selectedIds.has(String(q.id)) ? 'checked' : ''}></td>
+            <td class="q-cell">
+              ${escapeHtml(q.question)}
+              <div><span class="tag">${escapeHtml(q.subject)}</span> <span class="tag">${escapeHtml(q.chapter)}</span></div>
+            </td>
+            <td>${String.fromCharCode(64 + q.correctIndex)}. ${escapeHtml(q.options[q.correctIndex - 1])}</td>
+            <td class="row-actions">
+              <button class="btn btn-sm" data-act="edit" data-id="${escapeAttr(q.id)}">Edit</button>
+              <button class="btn btn-sm btn-danger" data-act="delete" data-id="${escapeAttr(q.id)}">Delete</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+
+  const from = qPage * PAGE_SIZE + 1, to = qPage * PAGE_SIZE + slice.length;
+  document.getElementById('pager').innerHTML = `
+    <span>Showing ${from}–${to} of ${visibleQs.length}${visibleQs.length !== allQuestions.length ? ' (filtered from ' + allQuestions.length + ')' : ''}</span>
+    <span>
+      <button class="btn" onclick="gotoPage(${qPage - 1})" ${qPage === 0 ? 'disabled' : ''}>&larr; Prev</button>
+      Page ${qPage + 1} / ${pages}
+      <button class="btn" onclick="gotoPage(${qPage + 1})" ${qPage >= pages - 1 ? 'disabled' : ''}>Next &rarr;</button>
+    </span>`;
+  updateBulkButton();
+}
+
+function gotoPage(n) { qPage = n; renderTable(); window.scrollTo({ top: document.getElementById('table-wrap').offsetTop - 120, behavior: 'smooth' }); }
+
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(String(id)); else selectedIds.delete(String(id));
+  updateBulkButton();
+}
+function togglePageSelect(checked) {
+  visibleQs.slice(qPage * PAGE_SIZE, (qPage + 1) * PAGE_SIZE).forEach(q => {
+    if (checked) selectedIds.add(String(q.id)); else selectedIds.delete(String(q.id));
+  });
+  renderTable();
+}
+function updateBulkButton() {
+  const btn = document.getElementById('bulk-del-btn');
+  btn.textContent = `Delete selected (${selectedIds.size})`;
+  btn.disabled = selectedIds.size === 0;
+}
+
+async function bulkDeleteSelected() {
+  const n = selectedIds.size;
+  if (!n || !confirm(`Delete ${n} selected question(s)? This cannot be undone.`)) return;
+  const btn = document.getElementById('bulk-del-btn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    await apiPost('bulkDeleteQuestions', { ids: [...selectedIds] });
+    await loadAndRenderTable();
+  } catch (e) { alert(e.message); updateBulkButton(); }
+}
+
+async function deleteWholeChapter() {
+  const subject = document.getElementById('filter-subject').value;
+  const chapter = document.getElementById('filter-chapter').value;
+  const n = allQuestions.length;
+  if (!n) return;
+  const typed = prompt(`This will permanently delete ALL ${n} questions in "${subject} → ${chapter}".\n\nType DELETE to confirm:`);
+  if (typed !== 'DELETE') return;
+  try {
+    await apiPost('bulkDeleteQuestions', { ids: allQuestions.map(q => q.id) });
+    await loadSubjectFilter();
+    document.getElementById('filter-subject').value = subject;
+    await onFilterSubjectChange();
+    await loadAndRenderTable();
+  } catch (e) { alert(e.message); }
+}
+
+/* ===== add / edit form ===== */
+function renderOptionRows(options) {
+  const container = document.getElementById('option-rows');
+  container.innerHTML = ['A','B','C','D'].map((letter, i) => `
+    <div class="option-row ${correctIndex === i + 1 ? 'is-correct' : ''}" id="opt-row-${i}">
+      <div class="letter" onclick="setCorrect(${i + 1})" title="Mark as correct answer">${letter}</div>
+      <input type="text" id="opt-input-${i}" placeholder="Option ${letter}" value="${options ? escapeAttr(options[i] || '') : ''}">
+    </div>
+  `).join('') + '<div class="correct-note">Tap a letter to mark it as the correct answer. Currently: ' + String.fromCharCode(64 + correctIndex) + '</div>';
+}
+
+function setCorrect(i) {
+  correctIndex = i;
+  const options = [0,1,2,3].map(i => document.getElementById('opt-input-' + i).value);
+  renderOptionRows(options);
+}
+
+function openForm(id) {
+  const formCard = document.getElementById('form-card');
+  formCard.classList.remove('hidden');
+  document.getElementById('form-error').classList.add('hidden');
+  editingId = id || null;
+
+  if (id) {
+    const q = allQuestions.find(q => String(q.id) === String(id));
+    document.getElementById('form-title').textContent = 'Edit question';
+    document.getElementById('f-subject').value = q.subject;
+    document.getElementById('f-chapter').value = q.chapter;
+    document.getElementById('f-question').value = q.question;
+    document.getElementById('f-explanation').value = q.explanation || '';
+    correctIndex = q.correctIndex;
+    renderOptionRows(q.options);
+  } else {
+    document.getElementById('form-title').textContent = 'Add question';
+    document.getElementById('f-subject').value = document.getElementById('filter-subject').value || '';
+    document.getElementById('f-chapter').value = '';
+    document.getElementById('f-question').value = '';
+    document.getElementById('f-explanation').value = '';
+    correctIndex = 1;
+    renderOptionRows(null);
+  }
+  formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeForm() {
+  document.getElementById('form-card').classList.add('hidden');
+  editingId = null;
+}
+
+async function saveQuestion() {
+  const subject = document.getElementById('f-subject').value.trim();
+  const chapter = document.getElementById('f-chapter').value.trim();
+  const question = document.getElementById('f-question').value.trim();
+  const options = [0,1,2,3].map(i => document.getElementById('opt-input-' + i).value.trim());
+  const explanation = document.getElementById('f-explanation').value.trim();
+  const errEl = document.getElementById('form-error');
+  errEl.classList.add('hidden');
+
+  if (!subject || !chapter || !question || options.some(o => !o)) {
+    errEl.textContent = 'Fill in the subject, chapter, question and all four options.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const payload = { subject, chapter, question, options, correctIndex, explanation };
+  try {
+    if (editingId) {
+      await apiPost('editQuestion', { id: editingId, ...payload });
+    } else {
+      await apiPost('addQuestion', payload);
+    }
+    closeForm();
+    await loadSubjectFilter();
+    await loadAndRenderTable();
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+}
+
+async function removeQuestion(id) {
+  if (!confirm('Delete this question? This cannot be undone.')) return;
+  await apiPost('deleteQuestion', { id });
+  await loadAndRenderTable();
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+/* ================= IMPORT FROM WORD DOCUMENT ================= */
+
+let reviewRows = []; // parsed questions awaiting review/import
+
+function setImportStatus(msg, busy) {
+  const el = document.getElementById('import-status');
+  el.classList.remove('hidden');
+  el.classList.toggle('busy', !!busy);
+  el.textContent = msg;
+}
+
+async function handleImportFile(file) {
+  if (!file) return;
+  document.getElementById('review-block').classList.add('hidden');
+  document.getElementById('apply-all-block').classList.add('hidden');
+  reviewRows = [];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext !== 'docx') {
+    setImportStatus('Please choose a .docx Word file.', false);
+    return;
+  }
+  try {
+    setImportStatus('Reading Word document…', true);
+    const text = await extractDocxText(file);
+    setImportStatus('Parsing questions…', true);
+    const parsed = parseQuestionBank(text);
+    if (parsed.rows.length === 0) {
+      setImportStatus('Could not find any numbered questions in this file. You may need to add these manually, or check the file follows the expected format.', false);
+      return;
+    }
+    reviewRows = parsed.rows;
+    // Flag questions that are already in the bank (left unticked by default).
+    setImportStatus('Checking for questions you already have…', true);
+    const existing = (await apiPost('getAllQuestions', { subject: '', chapter: '' })).data;
+    const have = new Set(existing.map(q => normText(q.question)));
+    reviewRows.forEach(r => { if (have.has(normText(r.question))) { r.duplicate = true; r.include = false; } });
+    document.getElementById('apply-subject').value = parsed.subjectGuess || '';
+    document.getElementById('apply-chapter').value = parsed.chapterGuess || '';
+    document.getElementById('apply-all-block').classList.remove('hidden');
+    const withWarnings = reviewRows.filter(r => r.warning).length;
+    const dups = reviewRows.filter(r => r.duplicate).length;
+    setImportStatus(`Found ${reviewRows.length} question(s).` +
+      (withWarnings ? ` ${withWarnings} need your attention (marked below).` : '') +
+      (dups ? ` ${dups} already exist in your question bank and were left unticked.` : ''), false);
+    renderReviewList();
+  } catch (e) {
+    setImportStatus('Could not read this file: ' + e.message, false);
+  }
+}
+
+/* ---- .docx extraction (real text, no OCR needed) ---- */
+async function extractDocxText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+/* ---- shared parser for both docx text and pdf text ---- */
+function parseQuestionBank(rawText) {
+  const text = rawText.replace(/\r/g, '');
+
+  const chapterMatch = text.match(/CHAPTER\s*\d+\s*[:.\-]\s*([^\n]+)/i);
+  const subjectMatch = text.match(/CLASS\s*\d+\s+([A-Za-z][A-Za-z ]*)/i);
+  const subjectGuess = subjectMatch ? toTitleCase(subjectMatch[1].replace(/\.$/, '').trim()) : '';
+  const chapterGuess = chapterMatch ? toTitleCase(chapterMatch[1].replace(/\.$/, '').trim()) : '';
+
+  const answerBoundary = text.search(/\d+\.\s*Answer\s*:?\s*\(/i);
+  const questionsText = answerBoundary > -1 ? text.slice(0, answerBoundary) : text;
+  const answersText = answerBoundary > -1 ? text.slice(answerBoundary) : '';
+
+  const questions = {};
+  const qRegex = /^(\d+)\.\s*([\s\S]*?)\n\s*\(A\)\s*([\s\S]*?)\n\s*\(B\)\s*([\s\S]*?)\n\s*\(C\)\s*([\s\S]*?)\n\s*\(D\)\s*([\s\S]*?)(?=\n\s*\d+\.\s|\s*$)/gm;
+  let m;
+  while ((m = qRegex.exec(questionsText)) !== null) {
+    const num = Number(m[1]);
+    questions[num] = {
+      number: num,
+      question: clean(m[2]),
+      options: [clean(m[3]), clean(m[4]), clean(m[5]), clean(m[6])]
+    };
+  }
+
+  const answers = {};
+  const aRegex = /^(\d+)\.\s*Answer\s*:?\s*\(([A-D])\)[\s\S]*?Explanation\s*:?\s*([\s\S]*?)(?=\n\s*\d+\.\s*Answer\s*:?\s*\(|\s*$)/gim;
+  while ((m = aRegex.exec(answersText)) !== null) {
+    answers[Number(m[1])] = {
+      correctIndex: 'ABCD'.indexOf(m[2].toUpperCase()) + 1,
+      explanation: clean(m[3])
+    };
+  }
+
+  const rows = Object.keys(questions).map(Number).sort((a, b) => a - b).map(num => {
+    const q = questions[num];
+    const a = answers[num];
+    const incompleteOptions = q.options.some(o => !o);
+    const warning = !a ? 'No answer detected' : (incompleteOptions ? 'Missing an option' : '');
+    return {
+      number: num,
+      include: !warning,
+      subject: subjectGuess,
+      chapter: chapterGuess,
+      question: q.question,
+      options: q.options,
+      correctIndex: a ? a.correctIndex : null,
+      explanation: a ? a.explanation : '',
+      warning
+    };
+  });
+
+  return { subjectGuess, chapterGuess, rows };
+}
+
+function normText(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+function clean(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
+function toTitleCase(s) { return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()); }
+
+/* ---- review list UI ---- */
+function renderReviewList() {
+  const block = document.getElementById('review-block');
+  block.classList.remove('hidden');
+  document.getElementById('review-summary').textContent =
+    `${reviewRows.length} question(s) parsed. Uncheck any you don't want, fix anything wrong, then import.`;
+  const list = document.getElementById('review-list');
+  list.innerHTML = reviewRows.map((r, i) => `
+    <div class="review-row ${r.include ? '' : 'excluded'} ${r.warning ? 'has-warning' : ''}" id="review-row-${i}">
+      <div class="review-head">
+        <input type="checkbox" ${r.include ? 'checked' : ''} onchange="toggleRowInclude(${i}, this.checked)">
+        <div class="review-num">Q${r.number}${r.duplicate ? '<span class="review-dup">Already in question bank</span>' : ''}${r.warning ? `<span class="review-warning">${escapeHtml(r.warning)}</span>` : ''}</div>
+      </div>
+      <div class="review-fields">
+        <label>Subject</label>
+        <input type="text" value="${escapeAttr(r.subject)}" oninput="updateRowField(${i}, 'subject', this.value)">
+        <label>Chapter</label>
+        <input type="text" value="${escapeAttr(r.chapter)}" oninput="updateRowField(${i}, 'chapter', this.value)">
+        <label>Question</label>
+        <textarea oninput="updateRowField(${i}, 'question', this.value)">${escapeHtml(r.question)}</textarea>
+        <label>Options — tap a letter to set the correct answer</label>
+        <div id="review-options-${i}"></div>
+        <label>Explanation</label>
+        <textarea oninput="updateRowField(${i}, 'explanation', this.value)">${escapeHtml(r.explanation)}</textarea>
+      </div>
+    </div>
+  `).join('');
+  reviewRows.forEach((r, i) => renderReviewOptions(i));
+}
+
+function renderReviewOptions(i) {
+  const r = reviewRows[i];
+  const el = document.getElementById(`review-options-${i}`);
+  el.innerHTML = ['A','B','C','D'].map((letter, oi) => `
+    <div class="option-row compact ${r.correctIndex === oi + 1 ? 'is-correct' : ''}">
+      <div class="letter" onclick="setReviewCorrect(${i}, ${oi + 1})" title="Mark as correct answer">${letter}</div>
+      <input type="text" value="${escapeAttr(r.options[oi] || '')}" oninput="updateRowOption(${i}, ${oi}, this.value)">
+    </div>
+  `).join('');
+}
+
+function toggleRowInclude(i, checked) {
+  reviewRows[i].include = checked;
+  document.getElementById(`review-row-${i}`).classList.toggle('excluded', !checked);
+}
+function updateRowField(i, field, value) { reviewRows[i][field] = value; }
+function updateRowOption(i, oi, value) { reviewRows[i].options[oi] = value; }
+function setReviewCorrect(i, correct) {
+  reviewRows[i].correctIndex = correct;
+  reviewRows[i].warning = '';
+  document.getElementById(`review-row-${i}`).classList.remove('has-warning');
+  const badge = document.querySelector(`#review-row-${i} .review-warning`);
+  if (badge) badge.remove();
+  renderReviewOptions(i);
+}
+
+function applyToAllRows() {
+  const subject = document.getElementById('apply-subject').value.trim();
+  const chapter = document.getElementById('apply-chapter').value.trim();
+  reviewRows.forEach(r => { r.subject = subject; r.chapter = chapter; });
+  renderReviewList();
+}
+
+function cancelImport() {
+  reviewRows = [];
+  document.getElementById('review-block').classList.add('hidden');
+  document.getElementById('apply-all-block').classList.add('hidden');
+  document.getElementById('import-status').classList.add('hidden');
+  document.getElementById('import-file').value = '';
+}
+
+async function importSelectedRows() {
+  const errEl = document.getElementById('import-error');
+  errEl.classList.add('hidden');
+  const selected = reviewRows.filter(r => r.include);
+  if (selected.length === 0) {
+    errEl.textContent = 'Select at least one question to import.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const bad = selected.find(r => !r.subject || !r.chapter || !r.question || r.options.some(o => !o) || !r.correctIndex);
+  if (bad) {
+    errEl.textContent = `Question ${bad.number} is missing a subject, chapter, an option, or a marked correct answer.`;
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const btn = document.getElementById('import-btn');
+  btn.disabled = true; btn.textContent = 'Importing…';
+  try {
+    const payload = selected.map(r => ({
+      subject: r.subject, chapter: r.chapter, question: r.question,
+      options: r.options, correctIndex: r.correctIndex, explanation: r.explanation
+    }));
+    const res = { count: 0, skipped: 0 };
+    for (let i = 0; i < payload.length; i += 400) {            // server accepts max 500 per request
+      const part = await apiPost('bulkAddQuestions', { questions: payload.slice(i, i + 400) });
+      res.count += part.count || 0;
+      res.skipped += part.skipped || 0;
+    }
+    cancelImport();
+    await loadSubjectFilter();
+    await loadAndRenderTable();
+    setImportStatus(`Imported ${res.count} question(s) successfully.` + (res.skipped ? ` Skipped ${res.skipped} duplicate(s).` : ''), false);
+    document.getElementById('import-status').classList.remove('hidden');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Import selected';
+  }
+}
+
+
+/* ===== tabs + students ===== */
+let students = [];
+let studentsView = [];
+
+function showTab(name) {
+  ['questions','students'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+    document.getElementById('tabbtn-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'students') loadStudents();
+}
+
+async function loadStudents() {
+  const wrap = document.getElementById('students-wrap');
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    students = (await apiPost('listStudents', {})).data;
+    renderStudents();
+  } catch (e) { wrap.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`; }
+}
+
+function renderStudents() {
+  const term = document.getElementById('student-search').value.trim().toLowerCase();
+  studentsView = students.filter(s => !term || (String(s.name) + ' ' + String(s.email)).toLowerCase().includes(term));
+  const wrap = document.getElementById('students-wrap');
+  document.getElementById('students-count').innerHTML = `<span>${studentsView.length} of ${students.length} student(s)</span>`;
+  if (studentsView.length === 0) { wrap.innerHTML = '<div class="empty">No students found.</div>'; return; }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th></th></tr></thead>
+      <tbody>
+        ${studentsView.map((s, i) => `
+          <tr>
+            <td>${escapeHtml(s.name)}</td>
+            <td>${escapeHtml(s.email)}</td>
+            <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '–'}</td>
+            <td class="row-actions"><button class="btn btn-sm btn-danger" onclick="removeStudent(${i})">Remove</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function removeStudent(i) {
+  const s = studentsView[i];
+  if (!s || !confirm(`Remove ${s.name} (${s.email})? They will need to register again.`)) return;
+  try { await apiPost('deleteStudent', { email: s.email }); await loadStudents(); }
+  catch (e) { alert(e.message); }
+}
+
+/* ===== table actions (event delegation: no data is ever placed inside inline JavaScript) ===== */
+document.getElementById('table-wrap').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  if (b.dataset.act === 'edit') openForm(b.dataset.id);
+  else if (b.dataset.act === 'delete') removeQuestion(b.dataset.id);
+});
+document.getElementById('table-wrap').addEventListener('change', e => {
+  const c = e.target;
+  if (c.dataset && c.dataset.act === 'select') toggleSelect(c.dataset.id, c.checked);
+});
+
+/* ===== boot ===== */
+(function init() {
+  if (API_URL.indexOf('PASTE_YOUR') === 0) {
+    document.body.innerHTML = '<div class="wrap"><div class="card"><b>Setup needed:</b> open index.html and paste your Apps Script web app URL into API_URL near the bottom of the file.</div></div>';
+    return;
+  }
+  if (admin && admin.token) { afterLogin(); } else { sessionStorage.removeItem('mcq_admin'); }
+})();
+</script>
+</body>
+</html>
